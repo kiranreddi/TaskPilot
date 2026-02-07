@@ -35,12 +35,12 @@ async function request<T>(
 // Auth
 export const auth = {
   signup: (data: { email: string; password: string; name: string }) =>
-    request<{ token: string }>("/api/auth/signup", {
+    request<{ access_token: string; token_type: string }>("/api/auth/signup", {
       method: "POST",
       body: JSON.stringify(data),
     }),
   login: (data: { email: string; password: string }) =>
-    request<{ token: string }>("/api/auth/login", {
+    request<{ access_token: string; token_type: string }>("/api/auth/login", {
       method: "POST",
       body: JSON.stringify(data),
     }),

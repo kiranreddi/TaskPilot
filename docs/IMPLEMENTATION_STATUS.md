@@ -140,9 +140,9 @@
 
 | Suite | Tests | Status |
 |-------|-------|--------|
-| Backend (pytest) | 68 tests | ✅ All passing |
+| Backend (pytest) | 104 tests | ✅ All passing |
 | Frontend (jest) | 42 tests | ✅ All passing |
-| **Total** | **110 tests** | ✅ |
+| **Total** | **146 tests** | ✅ |
 
 ## CI/CD
 

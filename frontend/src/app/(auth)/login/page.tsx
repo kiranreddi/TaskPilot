@@ -6,6 +6,7 @@ import { useState } from "react";
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -19,12 +20,15 @@ export default function LoginPage() {
         }
       );
       const data = await res.json();
-      if (data.token) {
-        localStorage.setItem("token", data.token);
+      const token = data.token || data.access_token;
+      if (token) {
+        localStorage.setItem("token", token);
         window.location.href = "/chat";
+      } else {
+        setError("Login failed. Please check your credentials.");
       }
     } catch {
-      // handle error
+      setError("Network error. Please try again.");
     }
   }
 
@@ -36,6 +40,7 @@ export default function LoginPage() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4 bg-white p-6 rounded-xl shadow-sm border">
+        {error && <p className="text-sm text-red-600">{error}</p>}
         <div>
           <label htmlFor="email" className="block text-sm font-medium text-gray-700">
             Email
