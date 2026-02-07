@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 
 jest.mock("next/navigation", () => ({
@@ -13,6 +13,13 @@ jest.mock("next/link", () => {
     return React.createElement("a", { href }, children);
   };
 });
+
+jest.mock("@/lib/api", () => ({
+  workflows: {
+    create: jest.fn().mockRejectedValue(new Error("API unavailable")),
+    run: jest.fn().mockRejectedValue(new Error("API unavailable")),
+  },
+}));
 
 import ChatPage from "@/app/(dashboard)/chat/page";
 
@@ -41,14 +48,16 @@ describe("Chat Page", () => {
     expect(screen.getByText("Read-only mode")).toBeInTheDocument();
   });
 
-  it("shows plan modal when Run is clicked with prompt", () => {
+  it("shows plan modal when Run is clicked with prompt", async () => {
     render(React.createElement(ChatPage));
     const textarea = screen.getByPlaceholderText(
       "Ask TaskPilot to do something across your apps…"
     );
     fireEvent.change(textarea, { target: { value: "test prompt" } });
     fireEvent.click(screen.getByText("Run"));
-    expect(screen.getByText("Here's what I will do")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText("Here's what I will do")).toBeInTheDocument();
+    });
     expect(screen.getByText("Approve & Run")).toBeInTheDocument();
   });
 });

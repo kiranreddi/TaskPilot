@@ -1,5 +1,8 @@
 "use client";
 
+import { useState, useEffect } from "react";
+import { templates as templatesApi, workflows as workflowsApi } from "@/lib/api";
+
 interface Template {
   id: string;
   name: string;
@@ -7,7 +10,7 @@ interface Template {
   tags: string[];
 }
 
-const TEMPLATES: Template[] = [
+const MOCK_TEMPLATES: Template[] = [
   {
     id: "tpl-1",
     name: "Weekly Revenue Report",
@@ -41,12 +44,36 @@ const TEMPLATES: Template[] = [
 ];
 
 export default function TemplatesPage() {
+  const [templatesList, setTemplatesList] = useState<Template[]>(MOCK_TEMPLATES);
+
+  useEffect(() => {
+    let cancelled = false;
+    templatesApi
+      .list()
+      .then((data) => {
+        if (!cancelled && data.length > 0) {
+          setTemplatesList(data);
+        }
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
+  async function handleUse(templateId: string) {
+    try {
+      const result = await workflowsApi.create({ source: "template", template_id: templateId });
+      window.location.href = `/workflows/${result.id}`;
+    } catch {
+      // API unavailable
+    }
+  }
+
   return (
     <div>
       <h1 className="text-2xl font-bold mb-6">Templates</h1>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {TEMPLATES.map((tpl) => (
+        {templatesList.map((tpl) => (
           <div
             key={tpl.id}
             className="bg-white rounded-xl border p-5 flex flex-col gap-3 shadow-sm"
@@ -65,6 +92,7 @@ export default function TemplatesPage() {
             </div>
             <button
               type="button"
+              onClick={() => handleUse(tpl.id)}
               className="w-full rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700"
             >
               Use

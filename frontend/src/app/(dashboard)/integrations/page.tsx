@@ -1,6 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import {
+  integrations as integrationsApi,
+} from "@/lib/api";
 
 interface Integration {
   provider: string;
@@ -12,7 +15,7 @@ interface Integration {
   lastHealthy?: string;
 }
 
-const INTEGRATIONS: Integration[] = [
+const MOCK_INTEGRATIONS: Integration[] = [
   {
     provider: "google",
     name: "Google Workspace",
@@ -57,8 +60,59 @@ const INTEGRATIONS: Integration[] = [
 export default function IntegrationsPage() {
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Integration | null>(null);
+  const [integrationsList, setIntegrationsList] = useState<Integration[]>(MOCK_INTEGRATIONS);
 
-  const filtered = INTEGRATIONS.filter(
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchData() {
+      try {
+        const [available, connections] = await Promise.all([
+          integrationsApi.list(),
+          integrationsApi.connections().catch(() => []),
+        ]);
+
+        if (cancelled) return;
+
+        const connMap = new Map(
+          connections.map((c) => [c.provider, c])
+        );
+
+        if (available.length > 0) {
+          setIntegrationsList(
+            available.map((a) => {
+              const conn = connMap.get(a.provider);
+              return {
+                provider: a.provider,
+                name: a.name,
+                description: a.description,
+                icon: a.icon,
+                connected: !!conn,
+                scopes: conn?.scopes,
+                lastHealthy: conn?.last_healthy,
+              };
+            })
+          );
+        }
+      } catch {
+        // API unavailable – keep mock data
+      }
+    }
+
+    fetchData();
+    return () => { cancelled = true; };
+  }, []);
+
+  async function handleConnect(provider: string) {
+    try {
+      const result = await integrationsApi.connect(provider);
+      window.location.href = result.redirect_url;
+    } catch {
+      // API unavailable
+    }
+  }
+
+  const filtered = integrationsList.filter(
     (i) =>
       i.name.toLowerCase().includes(search.toLowerCase()) ||
       i.description.toLowerCase().includes(search.toLowerCase())
@@ -101,6 +155,7 @@ export default function IntegrationsPage() {
               ) : (
                 <button
                   type="button"
+                  onClick={() => handleConnect(integration.provider)}
                   className="flex-1 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700"
                 >
                   Connect
@@ -149,7 +204,7 @@ export default function IntegrationsPage() {
             <div className="flex gap-3">
               <button
                 type="button"
-                onClick={() => setSelected(null)}
+                onClick={() => { handleConnect(selected.provider); setSelected(null); }}
                 className="flex-1 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
               >
                 Reconnect

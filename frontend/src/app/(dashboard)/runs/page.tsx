@@ -1,6 +1,8 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { runs as runsApi } from "@/lib/api";
 
 interface Run {
   id: string;
@@ -10,7 +12,7 @@ interface Run {
   duration: string;
 }
 
-const RUNS: Run[] = [
+const MOCK_RUNS: Run[] = [
   { id: "run-001", workflow: "Weekly Revenue Report", status: "completed", started: "2024-01-15 09:00", duration: "2m 14s" },
   { id: "run-002", workflow: "Clean Inbox", status: "completed", started: "2024-01-15 08:30", duration: "45s" },
   { id: "run-003", workflow: "Meeting Follow-ups", status: "running", started: "2024-01-15 10:00", duration: "—" },
@@ -26,6 +28,29 @@ const STATUS_STYLES: Record<string, string> = {
 };
 
 export default function RunsPage() {
+  const [runsList, setRunsList] = useState<Run[]>(MOCK_RUNS);
+
+  useEffect(() => {
+    let cancelled = false;
+    runsApi
+      .list()
+      .then((data) => {
+        if (!cancelled && data.length > 0) {
+          setRunsList(
+            data.map((r) => ({
+              id: r.id,
+              workflow: r.workflow,
+              status: (r.status ?? "completed") as Run["status"],
+              started: r.started ?? "—",
+              duration: r.duration ?? "—",
+            }))
+          );
+        }
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
   return (
     <div>
       <h1 className="text-2xl font-bold mb-6">Runs</h1>
@@ -43,7 +68,7 @@ export default function RunsPage() {
             </tr>
           </thead>
           <tbody className="divide-y">
-            {RUNS.map((run) => (
+            {runsList.map((run) => (
               <tr key={run.id} className="hover:bg-gray-50">
                 <td className="px-4 py-3 font-mono text-xs">{run.id}</td>
                 <td className="px-4 py-3">{run.workflow}</td>

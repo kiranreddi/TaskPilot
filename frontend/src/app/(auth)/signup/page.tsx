@@ -12,7 +12,7 @@ export default function SignupPage() {
     e.preventDefault();
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/auth/signup`,
+        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/auth/signup`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

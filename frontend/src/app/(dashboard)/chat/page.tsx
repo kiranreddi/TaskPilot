@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { workflows as workflowsApi } from "@/lib/api";
 
 const APP_CHIPS = ["Google", "Slack", "Notion", "Stripe"];
 
@@ -15,6 +16,8 @@ export default function ChatPage() {
   const [readOnly, setReadOnly] = useState(false);
   const [selectedApps, setSelectedApps] = useState<string[]>([]);
   const [showPlan, setShowPlan] = useState(false);
+  const [workflowId, setWorkflowId] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   const samplePlan: PlanStep[] = [
     { description: "Search Gmail for billing emails", risk: "READ", approval: false },
@@ -28,9 +31,29 @@ export default function ChatPage() {
     );
   }
 
-  function handleRun() {
+  async function handleRun() {
     if (!prompt.trim()) return;
+    setSubmitting(true);
+    try {
+      const result = await workflowsApi.create({ source: "nl", prompt });
+      setWorkflowId(result.id);
+    } catch {
+      // API unavailable – continue with demo plan
+    }
+    setSubmitting(false);
     setShowPlan(true);
+  }
+
+  async function handleApprove() {
+    if (workflowId) {
+      try {
+        await workflowsApi.run(workflowId);
+      } catch {
+        // API unavailable
+      }
+    }
+    setShowPlan(false);
+    setWorkflowId(null);
   }
 
   return (
@@ -85,9 +108,10 @@ export default function ChatPage() {
         <button
           type="button"
           onClick={handleRun}
-          className="w-full rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-indigo-700"
+          disabled={submitting}
+          className="w-full rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
         >
-          Run
+          {submitting ? "Submitting…" : "Run"}
         </button>
       </div>
 
@@ -125,7 +149,7 @@ export default function ChatPage() {
             <div className="flex gap-3 pt-2">
               <button
                 type="button"
-                onClick={() => setShowPlan(false)}
+                onClick={handleApprove}
                 className="flex-1 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
               >
                 Approve &amp; Run
@@ -139,7 +163,7 @@ export default function ChatPage() {
               </button>
               <button
                 type="button"
-                onClick={() => setShowPlan(false)}
+                onClick={() => { setShowPlan(false); setWorkflowId(null); }}
                 className="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
               >
                 Cancel

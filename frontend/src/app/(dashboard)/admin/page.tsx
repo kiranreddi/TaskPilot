@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { admin as adminApi } from "@/lib/api";
 
 interface Member {
   name: string;
@@ -8,7 +9,7 @@ interface Member {
   role: "admin" | "member" | "viewer";
 }
 
-const MEMBERS: Member[] = [
+const MOCK_MEMBERS: Member[] = [
   { name: "Alice Johnson", email: "alice@acme.com", role: "admin" },
   { name: "Bob Smith", email: "bob@acme.com", role: "member" },
   { name: "Carol Lee", email: "carol@acme.com", role: "viewer" },
@@ -20,7 +21,7 @@ interface IntegrationHealth {
   lastCheck: string;
 }
 
-const INTEGRATION_HEALTH: IntegrationHealth[] = [
+const MOCK_INTEGRATION_HEALTH: IntegrationHealth[] = [
   { name: "Google Workspace", status: "healthy", lastCheck: "2 mins ago" },
   { name: "Slack", status: "healthy", lastCheck: "1 min ago" },
   { name: "Stripe", status: "degraded", lastCheck: "5 mins ago" },
@@ -34,8 +35,48 @@ const HEALTH_STYLES: Record<string, string> = {
 };
 
 export default function AdminPage() {
+  const [members, setMembers] = useState<Member[]>(MOCK_MEMBERS);
   const [approvalRequired, setApprovalRequired] = useState(true);
   const [allowedDomains, setAllowedDomains] = useState("acme.com");
+  const [integrationHealth] = useState<IntegrationHealth[]>(MOCK_INTEGRATION_HEALTH);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchData() {
+      try {
+        const [membersData, policiesData] = await Promise.all([
+          adminApi.members().catch(() => null),
+          adminApi.policies().catch(() => null),
+        ]);
+
+        if (cancelled) return;
+
+        if (membersData && membersData.length > 0) {
+          setMembers(membersData as Member[]);
+        }
+        if (policiesData) {
+          setApprovalRequired(policiesData.require_approval_for_write);
+          setAllowedDomains(policiesData.allowed_domains ?? "acme.com");
+        }
+      } catch {
+        // API unavailable – keep mock data
+      }
+    }
+
+    fetchData();
+    return () => { cancelled = true; };
+  }, []);
+
+  async function handleToggleApproval() {
+    const newValue = !approvalRequired;
+    setApprovalRequired(newValue);
+    try {
+      await adminApi.updatePolicies({ require_approval_for_write: newValue });
+    } catch {
+      // API unavailable
+    }
+  }
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
@@ -62,7 +103,7 @@ export default function AdminPage() {
             </tr>
           </thead>
           <tbody className="divide-y">
-            {MEMBERS.map((member) => (
+            {members.map((member) => (
               <tr key={member.email} className="hover:bg-gray-50">
                 <td className="px-4 py-3">{member.name}</td>
                 <td className="px-4 py-3 text-gray-500">{member.email}</td>
@@ -96,7 +137,7 @@ export default function AdminPage() {
           </div>
           <button
             type="button"
-            onClick={() => setApprovalRequired(!approvalRequired)}
+            onClick={handleToggleApproval}
             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
               approvalRequired ? "bg-indigo-600" : "bg-gray-300"
             }`}
@@ -128,7 +169,7 @@ export default function AdminPage() {
       <div className="bg-white rounded-xl border p-5 shadow-sm">
         <h2 className="font-semibold text-sm mb-4">Integration Health Dashboard</h2>
         <div className="space-y-3">
-          {INTEGRATION_HEALTH.map((ih) => (
+          {integrationHealth.map((ih) => (
             <div key={ih.name} className="flex items-center justify-between">
               <span className="text-sm">{ih.name}</span>
               <div className="flex items-center gap-3">

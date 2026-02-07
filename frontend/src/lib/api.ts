@@ -35,16 +35,16 @@ async function request<T>(
 // Auth
 export const auth = {
   signup: (data: { email: string; password: string; name: string }) =>
-    request<{ token: string }>("/auth/signup", {
+    request<{ token: string }>("/api/auth/signup", {
       method: "POST",
       body: JSON.stringify(data),
     }),
   login: (data: { email: string; password: string }) =>
-    request<{ token: string }>("/auth/login", {
+    request<{ token: string }>("/api/auth/login", {
       method: "POST",
       body: JSON.stringify(data),
     }),
-  me: () => request<{ id: string; email: string; name: string; role: string }>("/me"),
+  me: () => request<{ id: string; email: string; name: string; role: string }>("/api/me"),
 };
 
 // Integrations
@@ -52,7 +52,7 @@ export const integrations = {
   list: () =>
     request<
       { provider: string; name: string; description: string; icon: string }[]
-    >("/integrations"),
+    >("/api/integrations"),
   connections: () =>
     request<
       {
@@ -61,9 +61,9 @@ export const integrations = {
         scopes: string[];
         last_healthy: string;
       }[]
-    >("/connections"),
+    >("/api/connections"),
   connect: (provider: string) =>
-    request<{ redirect_url: string }>(`/connections/${provider}/start`, {
+    request<{ redirect_url: string }>(`/api/connections/${provider}/start`, {
       method: "POST",
     }),
 };
@@ -79,18 +79,18 @@ export const workflows = {
         last_run: string;
         status: string;
       }[]
-    >("/workflows"),
+    >("/api/workflows"),
   create: (data: {
     source: "nl" | "template";
     prompt?: string;
     template_id?: string;
   }) =>
-    request<{ id: string }>("/workflows", {
+    request<{ id: string }>("/api/workflows", {
       method: "POST",
       body: JSON.stringify(data),
     }),
   run: (workflowId: string, data?: { inputs?: Record<string, unknown>; approvals?: Record<string, unknown> }) =>
-    request<{ run_id: string }>(`/workflows/${workflowId}/run`, {
+    request<{ run_id: string }>(`/api/workflows/${workflowId}/run`, {
       method: "POST",
       body: JSON.stringify(data ?? {}),
     }),
@@ -98,6 +98,16 @@ export const workflows = {
 
 // Runs
 export const runs = {
+  list: () =>
+    request<
+      {
+        id: string;
+        workflow: string;
+        status: string;
+        started: string;
+        duration: string;
+      }[]
+    >("/api/runs"),
   get: (runId: string) =>
     request<{
       id: string;
@@ -108,9 +118,9 @@ export const runs = {
       steps: { name: string; status: string; output?: string }[];
       artifacts: { name: string; url: string }[];
       retries: { attempt: number; status: string; at: string }[];
-    }>(`/runs/${runId}`),
+    }>(`/api/runs/${runId}`),
   cancel: (runId: string) =>
-    request<{ ok: boolean }>(`/runs/${runId}/cancel`, { method: "POST" }),
+    request<{ ok: boolean }>(`/api/runs/${runId}/cancel`, { method: "POST" }),
 };
 
 // Templates
@@ -118,14 +128,50 @@ export const templates = {
   list: () =>
     request<
       { id: string; name: string; description: string; tags: string[] }[]
-    >("/templates"),
+    >("/api/templates"),
 };
 
 // Billing
 export const billing = {
+  info: () =>
+    request<{
+      plan: string;
+      price: string;
+      status: string;
+      runs_used: number;
+      runs_limit: number;
+      tokens_used: string;
+      tokens_limit: string;
+    }>("/api/billing/info"),
   webhook: (payload: unknown) =>
-    request<{ ok: boolean }>("/billing/webhook", {
+    request<{ ok: boolean }>("/api/billing/webhook", {
       method: "POST",
       body: JSON.stringify(payload),
+    }),
+};
+
+// Admin
+export const admin = {
+  members: () =>
+    request<
+      { name: string; email: string; role: string }[]
+    >("/api/admin/members"),
+  invite: (data: { email: string; role: string }) =>
+    request<{ ok: boolean }>("/api/admin/members/invite", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  policies: () =>
+    request<{
+      require_approval_for_write: boolean;
+      allowed_domains: string;
+    }>("/api/admin/policies"),
+  updatePolicies: (data: {
+    require_approval_for_write?: boolean;
+    allowed_domains?: string;
+  }) =>
+    request<{ ok: boolean }>("/api/admin/policies", {
+      method: "PUT",
+      body: JSON.stringify(data),
     }),
 };
