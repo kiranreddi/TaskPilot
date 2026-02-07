@@ -1,6 +1,37 @@
+# Python
 __pycache__/
-*.pyc
-*.db
-.pytest_cache/
+*.py[cod]
+*$py.class
 *.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+.pytest_cache/
+htmlcov/
+.coverage
+
+# Node
+node_modules/
+.next/
+out/
+npm-debug.log*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
 .env
+.env.local
+.env.*.local
+
+# Database
+*.db
+*.sqlite3
