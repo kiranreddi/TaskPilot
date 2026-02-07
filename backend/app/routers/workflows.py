@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Body, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app import models, schemas
@@ -60,7 +60,7 @@ def create_workflow(
 @router.post("/{workflow_id}/run", response_model=schemas.RunResponse)
 def run_workflow(
     workflow_id: str,
-    req: schemas.WorkflowRunRequest = None,
+    req: schemas.WorkflowRunRequest = Body(default=None),
     current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
