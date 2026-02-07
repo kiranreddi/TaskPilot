@@ -40,7 +40,7 @@ export const auth = {
       body: JSON.stringify(data),
     }),
   login: (data: { email: string; password: string }) =>
-    request<{ token: string }>("/auth/signup", {
+    request<{ token: string }>("/auth/login", {
       method: "POST",
       body: JSON.stringify(data),
     }),
