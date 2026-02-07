@@ -1,0 +1,70 @@
+{
+  "metadata": {
+    "name": "Clean Inbox",
+    "description": "Summarize and label billing emails; draft responses for missing invoices.",
+    "tags": [
+      "email",
+      "ops"
+    ]
+  },
+  "inputs": {
+    "query": {
+      "type": "string",
+      "default": "newer_than:14d (invoice OR billing OR receipt)"
+    },
+    "label": {
+      "type": "string",
+      "default": "TaskPilot/Billing"
+    }
+  },
+  "policies": {
+    "default_mode": "SAFE",
+    "require_approval_for_write": true
+  },
+  "steps": [
+    {
+      "id": "s1",
+      "name": "Search Gmail",
+      "tool": "google.gmail.search",
+      "risk": "READ",
+      "args": {
+        "q": "{{query}}",
+        "max_results": 50
+      }
+    },
+    {
+      "id": "s2",
+      "name": "Summarize by vendor",
+      "tool": "taskpilot.llm.summarize",
+      "risk": "READ",
+      "args": {
+        "items_ref": "s1.output.messages",
+        "style": "table_by_vendor"
+      }
+    },
+    {
+      "id": "s3",
+      "name": "Apply label",
+      "tool": "google.gmail.label.apply",
+      "risk": "WRITE",
+      "args": {
+        "message_ids_ref": "s1.output.message_ids",
+        "label": "{{label}}"
+      }
+    },
+    {
+      "id": "s4",
+      "name": "Draft follow-ups for missing invoices",
+      "tool": "taskpilot.llm.draft_emails",
+      "risk": "READ",
+      "args": {
+        "messages_ref": "s1.output.messages",
+        "tone": "professional",
+        "ask": "Please resend the invoice PDF."
+      }
+    }
+  ],
+  "outputs": {
+    "summary": "Produced a vendor summary, labeled messages, and drafted follow-up emails (not sent)."
+  }
+}

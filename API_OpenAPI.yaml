@@ -1,0 +1,117 @@
+openapi: 3.0.3
+info:
+  title: TaskPilot API
+  version: 0.1.0
+servers:
+  - url: https://api.taskpilot.example
+paths:
+  /auth/signup:
+    post:
+      summary: Create account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: {type: string, format: email}
+                password: {type: string, minLength: 8}
+                name: {type: string}
+      responses:
+        "200":
+          description: OK
+  /me:
+    get:
+      summary: Current user
+      responses:
+        "200": {description: OK}
+  /integrations:
+    get:
+      summary: List available integrations
+      responses:
+        "200": {description: OK}
+  /connections:
+    get:
+      summary: List org connections
+      responses:
+        "200": {description: OK}
+  /connections/{provider}/start:
+    post:
+      summary: Start OAuth flow
+      parameters:
+        - in: path
+          name: provider
+          required: true
+          schema: {type: string}
+      responses:
+        "200": {description: OK}
+  /workflows:
+    get:
+      summary: List workflows
+      responses:
+        "200": {description: OK}
+    post:
+      summary: Create workflow (NL or template)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                source: {type: string, enum: [nl, template]}
+                prompt: {type: string}
+                template_id: {type: string}
+      responses:
+        "200": {description: OK}
+  /workflows/{workflow_id}/run:
+    post:
+      summary: Run workflow
+      parameters:
+        - in: path
+          name: workflow_id
+          required: true
+          schema: {type: string}
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                inputs: {type: object}
+                approvals: {type: object}
+      responses:
+        "200": {description: OK}
+  /runs/{run_id}:
+    get:
+      summary: Get run details
+      parameters:
+        - in: path
+          name: run_id
+          required: true
+          schema: {type: string}
+      responses:
+        "200": {description: OK}
+  /runs/{run_id}/cancel:
+    post:
+      summary: Cancel a run
+      parameters:
+        - in: path
+          name: run_id
+          required: true
+          schema: {type: string}
+      responses:
+        "200": {description: OK}
+  /templates:
+    get:
+      summary: List templates
+      responses:
+        "200": {description: OK}
+  /billing/webhook:
+    post:
+      summary: Stripe webhook
+      responses:
+        "200": {description: OK}

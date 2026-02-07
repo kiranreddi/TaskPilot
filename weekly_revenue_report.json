@@ -1,0 +1,96 @@
+{
+  "metadata": {
+    "name": "Weekly Revenue Report",
+    "description": "Pull weekly Stripe revenue, update Google Sheet, generate PDF, post to Slack.",
+    "tags": [
+      "finance",
+      "reporting",
+      "weekly"
+    ]
+  },
+  "inputs": {
+    "slack_channel": {
+      "type": "string",
+      "default": "#finance"
+    },
+    "week_start": {
+      "type": "string",
+      "format": "date"
+    },
+    "week_end": {
+      "type": "string",
+      "format": "date"
+    }
+  },
+  "policies": {
+    "default_mode": "SAFE",
+    "require_approval_for_write": true
+  },
+  "steps": [
+    {
+      "id": "s1",
+      "name": "Fetch Stripe payments for date range",
+      "tool": "stripe.payments.list",
+      "risk": "READ",
+      "args": {
+        "start_date": "{{week_start}}",
+        "end_date": "{{week_end}}"
+      }
+    },
+    {
+      "id": "s2",
+      "name": "Aggregate totals by currency and source",
+      "tool": "taskpilot.data.aggregate",
+      "risk": "READ",
+      "args": {
+        "input_ref": "s1.output",
+        "group_by": [
+          "currency",
+          "source"
+        ],
+        "sum": [
+          "amount"
+        ]
+      }
+    },
+    {
+      "id": "s3",
+      "name": "Update Google Sheet",
+      "tool": "google.sheets.append_rows",
+      "risk": "WRITE",
+      "args": {
+        "spreadsheet_id": "{{env.REVENUE_SHEET_ID}}",
+        "sheet_name": "Weekly",
+        "rows_ref": "s2.output.rows"
+      }
+    },
+    {
+      "id": "s4",
+      "name": "Generate PDF report",
+      "tool": "taskpilot.report.pdf",
+      "risk": "READ",
+      "args": {
+        "template": "weekly_revenue",
+        "data_ref": "s2.output",
+        "title": "Weekly Revenue Report"
+      }
+    },
+    {
+      "id": "s5",
+      "name": "Post report to Slack",
+      "tool": "slack.chat.postMessage",
+      "risk": "WRITE",
+      "args": {
+        "channel": "{{slack_channel}}",
+        "text": "Weekly revenue report attached.",
+        "file_ref": "s4.output.file"
+      }
+    }
+  ],
+  "outputs": {
+    "primary_artifacts": [
+      "s4.output.file"
+    ],
+    "summary": "Posted weekly revenue report to Slack and appended results to Google Sheet."
+  }
+}
