@@ -89,3 +89,37 @@ def test_update_policies_non_admin(client, member_headers):
         "require_approval_for_write": False,
     })
     assert resp.status_code == 403
+
+
+def test_update_policy_disable_then_enable_approval(client, auth_headers):
+    resp = client.put("/api/admin/policies", headers=auth_headers, json={
+        "require_approval_for_write": False,
+    })
+    assert resp.status_code == 200
+    assert resp.json()["require_approval_for_write"] is False
+
+    resp = client.put("/api/admin/policies", headers=auth_headers, json={
+        "require_approval_for_write": True,
+    })
+    assert resp.status_code == 200
+    assert resp.json()["require_approval_for_write"] is True
+
+
+def test_invite_member_as_admin_role(client, auth_headers):
+    resp = client.post("/api/admin/members/invite", headers=auth_headers, json={
+        "email": "admin_invite@example.com",
+        "role": "ADMIN",
+    })
+    assert resp.status_code == 201
+    data = resp.json()
+    assert data["role"] == "ADMIN"
+    assert data["email"] == "admin_invite@example.com"
+
+
+def test_invite_member_as_viewer_role(client, auth_headers):
+    resp = client.post("/api/admin/members/invite", headers=auth_headers, json={
+        "email": "viewer@example.com",
+        "role": "VIEWER",
+    })
+    assert resp.status_code == 201
+    assert resp.json()["role"] == "VIEWER"

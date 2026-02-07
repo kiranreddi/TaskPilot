@@ -116,3 +116,59 @@ def test_list_workflows_after_create(client, auth_headers):
     resp = client.get("/api/workflows", headers=auth_headers)
     assert resp.status_code == 200
     assert len(resp.json()) == 2
+
+
+def test_create_workflow_from_template(client, auth_headers):
+    resp = client.post("/api/workflows", headers=auth_headers, json={
+        "name": "From Template",
+        "template_id": "clean_inbox",
+    })
+    assert resp.status_code == 201
+    data = resp.json()
+    assert data["name"] == "From Template"
+    assert data["status"] == "ACTIVE"
+
+
+def test_list_workflows_returns_correct_structure(client, auth_headers):
+    client.post("/api/workflows", headers=auth_headers, json={
+        "name": "Structure Test",
+        "description": "desc",
+    })
+    resp = client.get("/api/workflows", headers=auth_headers)
+    assert resp.status_code == 200
+    data = resp.json()
+    assert len(data) == 1
+    item = data[0]
+    assert "id" in item
+    assert "org_id" in item
+    assert "name" in item
+    assert "status" in item
+    assert "created_by" in item
+    assert item["description"] == "desc"
+
+
+def test_run_workflow_with_custom_inputs(client, auth_headers):
+    create_resp = client.post("/api/workflows", headers=auth_headers, json={
+        "name": "Input WF",
+    })
+    wf_id = create_resp.json()["id"]
+    resp = client.post(f"/api/workflows/{wf_id}/run", headers=auth_headers, json={
+        "inputs": {"query": "hello", "limit": 10},
+    })
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["status"] == "SUCCEEDED"
+    assert data["input_json"] == {"query": "hello", "limit": 10}
+
+
+def test_workflow_version_increments(client, auth_headers, db_session):
+    from app import models
+    create_resp = client.post("/api/workflows", headers=auth_headers, json={
+        "name": "Versioned WF",
+    })
+    wf_id = create_resp.json()["id"]
+    versions = db_session.query(models.WorkflowVersion).filter(
+        models.WorkflowVersion.workflow_id == wf_id
+    ).all()
+    assert len(versions) == 1
+    assert versions[0].version == 1
