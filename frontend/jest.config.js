@@ -1,0 +1,13 @@
+/** @type {import('jest').Config} */
+const config = {
+  testEnvironment: "jsdom",
+  transform: {
+    "^.+\\.(ts|tsx)$": ["ts-jest", { tsconfig: "tsconfig.json", jsx: "react-jsx" }],
+  },
+  moduleNameMapper: {
+    "^@/(.*)$": "<rootDir>/src/$1",
+  },
+  testMatch: ["**/__tests__/**/*.(ts|tsx)", "**/*.(test|spec).(ts|tsx)"],
+};
+
+module.exports = config;
